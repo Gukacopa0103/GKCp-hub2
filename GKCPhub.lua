@@ -3,13 +3,6 @@
     Feito pelo kablooey
     V3rmillion leaks never die
 ]]--
-local game:GetService("RunService").RenderStepped:Connect(function()
-    for _, gui in ipairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") and not gui.Enabled then
-            gui.Enabled = true
-        end
-    end
-end)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
@@ -18,6 +11,39 @@ local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
+locaL game:GetService("RunService").RenderStepped:Connect(function()
+    for _, gui in ipairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and not gui.Enabled then
+            gui.Enabled = true
+        end
+    end
+end)
+
+getgenv().ForceGuiVisible = true
+
+-- Cria ou força parent da GUI principal
+local player = game.Players.LocalPlayer
+local pgui = player:WaitForChild("PlayerGui")
+
+-- Se o script já tem uma ScreenGui chamada "AlgoAqui", força ela
+local function fixGui()
+    for _, gui in ipairs(pgui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            gui.Parent = pgui  -- redundante mas ajuda
+            gui.Enabled = true
+            gui.ResetOnSpawn = false
+            for _, child in ipairs(gui:GetDescendants()) do
+                if child:IsA("GuiObject") then
+                    child.Visible = true
+                end
+            end
+        end
+    end
+end
+
+fixGui()  -- roda uma vez
+-- Roda todo frame pra evitar reset (gambiarra mas funciona em jogos anti-GUI)
+game:GetService("RunService").RenderStepped:Connect(fixGui)
 -- Configurações
 local settings = {
     autoSteal = true,
