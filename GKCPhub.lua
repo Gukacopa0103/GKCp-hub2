@@ -3,7 +3,13 @@
     Feito pelo kablooey
     V3rmillion leaks never die
 ]]--
-
+local game:GetService("RunService").RenderStepped:Connect(function()
+    for _, gui in ipairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and not gui.Enabled then
+            gui.Enabled = true
+        end
+    end
+end)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
