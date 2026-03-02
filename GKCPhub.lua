@@ -1,152 +1,152 @@
--- Serviços básicos
+-- Gustavo Klaus Auto Finder 100M+ v3.0 - Roube um Brainrot (sem SimpleSpy)
+-- Remotes comuns: ajuste na GUI se nil
+
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Variáveis globais (toggles)
-getgenv().FlyEnabled = false
-getgenv().NoclipEnabled = false
-getgenv().HitboxExtenderEnabled = false
-getgenv().DesyncEnabled = false
-getgenv().AutoStealEnabled = false
+-- Config inicial
+local MIN_VALUE = 100000000 -- 100M+
+local MAX_PLAYERS = 15
+local HOP_DELAY = 8 -- Anti-ban
+local DISABLE_DUELS = true
 
--- GUI simples (forçada no PlayerGui pra aparecer no Velocity)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KlausExploitGui"
-ScreenGui.Parent = PlayerGui
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Enabled = true
+local BASE_REMOTE_PATH = "Packages.Net.RE.BaseService.GetBaseValue" -- Comum, ajusta GUI
+local DUEL_REMOTE_PATH = "Packages.Net.RE.DuelService.IsInDuel" -- Comum
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 250, 0, 300)
-Frame.Position = UDim2.new(0.5, -125, 0.5, -150)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
+print("🔍 Finder 100M+ v3.0 carregado! Edit remotes na GUI.")
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Title.Text = "Klaus Exploit v1 - Steal a Brainrot"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
-Title.Parent = Frame
-
--- Função pra criar toggle botão
-local function CreateToggle(name, yPos, callback)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(0.9, 0, 0, 40)
-    Button.Position = UDim2.new(0.05, 0, 0, yPos)
-    Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Button.Text = name .. ": OFF"
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Font = Enum.Font.SourceSans
-    Button.TextSize = 18
-    Button.Parent = Frame
-    
-    local state = false
-    Button.MouseButton1Click:Connect(function()
-        state = not state
-        Button.Text = name .. ": " .. (state and "ON" or "OFF")
-        Button.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
-        callback(state)
-    end)
+-- Format number
+local function format_number(n)
+    return tostring(n):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
 end
 
--- Toggles
-CreateToggle("Fly", 50, function(state) getgenv().FlyEnabled = state end)
-CreateToggle("Noclip", 100, function(state) getgenv().NoclipEnabled = state end)
-CreateToggle("Hitbox Extender", 150, function(state) getgenv().HitboxExtenderEnabled = state end)
-CreateToggle("Desync", 200, function(state) getgenv().DesyncEnabled = state end)
-CreateToggle("Auto Steal", 250, function(state) getgenv().AutoStealEnabled = state end)
-
--- Fly (BodyVelocity simples)
-local FlySpeed = 50
-RunService.RenderStepped:Connect(function()
-    if not FlyEnabled or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local hrp = LocalPlayer.Character.HumanoidRootPart
-    local cam = workspace.CurrentCamera
-    local moveDir = Vector3.new(0,0,0)
-    
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0,1,0) end
-    
-    hrp.Velocity = moveDir * FlySpeed
-end)
-
--- Noclip (desliga colisões)
-RunService.Stepped:Connect(function()
-    if NoclipEnabled and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
+-- Get base value (pcall safe)
+local function getBaseValue()
+    local remote = ReplicatedStorage:FindFirstChild(BASE_REMOTE_PATH, true)
+    if remote and remote:IsA("RemoteFunction") then
+        local success, value = pcall(remote.InvokeServer, remote)
+        return success and (value or 0) or 0
     end
-end)
+    return 0
+end
 
--- Hitbox Extender (aumenta tamanho de hitboxes de outros players)
-RunService.Heartbeat:Connect(function()
-    if not HitboxExtenderEnabled then return end
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local root = plr.Character.HumanoidRootPart
-            root.Size = Vector3.new(20, 20, 20)  -- Ajusta o tamanho (maior = mais fácil acertar)
-            root.Transparency = 0.7  -- Semi-transparente pra ver
-            root.CanCollide = false
-        end
+-- Check duel
+local function isInDuel()
+    if not DISABLE_DUELS then return false end
+    local remote = ReplicatedStorage:FindFirstChild(DUEL_REMOTE_PATH, true)
+    if remote and remote:IsA("RemoteFunction") then
+        local success, duel = pcall(remote.InvokeServer, remote)
+        return success and duel or false
     end
-end)
+    return false
+end
 
--- Desync básico (network ownership fake + simula lag)
-spawn(function()
-    while DesyncEnabled do
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            pcall(function()
-                LocalPlayer.Character.HumanoidRootPart:SetNetworkOwner(nil)  -- Desync ownership
-                wait(0.1)  -- Lag simulado
-                LocalPlayer.Character.HumanoidRootPart:SetNetworkOwner(LocalPlayer)
-            end)
-        end
-        wait(0.3)  -- Anti-detect
-    end
-end)
-
--- Auto Steal genérico (exemplo - adapta com RemoteSpy)
-spawn(function()
-    while AutoStealEnabled do
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-                -- Exemplo hipotético: acha remote de steal (usa RemoteSpy pra ver nome real)
-                local stealRemote = ReplicatedStorage:FindFirstChild("StealEvent") or ReplicatedStorage.Remotes:FindFirstChild("StealBrainrot")
-                if stealRemote and stealRemote:IsA("RemoteEvent") then
-                    stealRemote:FireServer(plr.Character)  -- Ou plr.Character.Brainrot, etc.
+-- Find rich server
+local function findRichServer()
+    local success, data = pcall(HttpService.JSONDecode, HttpService, game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+    if success and data.data then
+        for _, server in pairs(data.data) do
+            if server.playing <= MAX_PLAYERS and server.id ~= game.JobId then
+                print("🔎 Hop "..server.id.." ("..server.playing.." players)")
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, lp)
+                task.wait(HOP_DELAY + math.random(0,3)) -- Random anti-ban
+                
+                local value = getBaseValue()
+                local duel = isInDuel()
+                
+                if value >= MIN_VALUE and not duel then
+                    print("💎 100M+ ACHADO! Value: R$"..format_number(value).." ID: "..server.id)
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, lp)
+                    return true
                 end
+                print("❌ Value R$"..format_number(value).." (duel: "..tostring(duel)..")")
             end
         end
-        wait(0.5)  -- Delay pra evitar kick
     end
-end)
+    print("❌ Nenhum 100M+. Novo scan...")
+    return false
+end
 
--- Anti-kick básico
+-- Loop auto
 spawn(function()
     while true do
-        wait(5)
-        pcall(function()
-            if LocalPlayer.Character then
-                LocalPlayer.Character:BreakJoints()  -- Gambiarra anti-kick em alguns jogos
-            end
-        end)
+        findRichServer()
+        task.wait(12 + math.random(0,8))
     end
 end)
 
-print("Klaus Exploit carregado! GUI no meio da tela.")
+-- GUI Rayfield (edit remotes/values)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "Meu Finder 100M+ v3.0",
+    LoadingTitle = "Carregando...",
+    KeySystem = false
+})
+
+local Tab = Window:CreateTab("Finder")
+
+Tab:CreateSlider({
+    Name = "Min Value (R$)",
+    Range = {50e6, 1e9},
+    Increment = 10e6,
+    CurrentValue = MIN_VALUE,
+    Callback = function(v)
+        MIN_VALUE = v
+        print("Min value: R$"..format_number(v))
+    end
+})
+
+Tab:CreateSlider({
+    Name = "Max Players",
+    Range = {5, 50},
+    Increment = 1,
+    CurrentValue = MAX_PLAYERS,
+    Callback = function(v)
+        MAX_PLAYERS = v
+    end
+})
+
+Tab:CreateToggle({
+    Name = "Disable Duels",
+    CurrentValue = true,
+    Callback = function(v)
+        DISABLE_DUELS = v
+    end
+})
+
+Tab:CreateInput({
+    Name = "Base Remote Path",
+    PlaceholderText = "Packages.Net.RE.BaseService.GetBaseValue",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(v)
+        BASE_REMOTE_PATH = v
+        print("Base remote: "..v)
+    end
+})
+
+Tab:CreateInput({
+    Name = "Duel Remote Path",
+    PlaceholderText = "Packages.Net.RE.DuelService.IsInDuel",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(v)
+        DUEL_REMOTE_PATH = v
+        print("Duel remote: "..v)
+    end
+})
+
+Tab:CreateButton({
+    Name = "Scan Now",
+    Callback = findRichServer
+})
+
+Tab:CreateButton({
+    Name = "Server Hop",
+    Callback = function()
+        TeleportService:Teleport(game.PlaceId, lp)
+    end
+})
+
+print("✅ Finder rodando! GUI pronta. Ajusta remotes se nil (comum: BaseService.GetBaseValue).")
